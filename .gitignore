@@ -1,83 +1,25 @@
-# ------------------------
-# OS-specific junk files
-# ------------------------
+# ─── Node / JavaScript ────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.log
+
+# ─── Environment ─────────────────────────────────────
+.env
+.env.*.local
+
+# ─── Build & Coverage ────────────────────────────────
+dist/
+build/
+coverage/
+
+# ─── Docker override ─────────────────────────────────
+docker-compose.override.yml
+
+# ─── Editors & OS ────────────────────────────────────
+.vscode/
+.idea/
 .DS_Store
 Thumbs.db
 
-# ------------------------
-# Editor files
-# ------------------------
-*.swp
-*.swo
-*.bak
-*.tmp
-*.log
-*.vscode/
-.idea/
-
-# ------------------------
-# Docker
-# ------------------------
-*.pid
-*.log
-.env
-docker-compose.override.yml
-
-# ------------------------
-# Go
-# ------------------------
-/bin/
-/pkg/
-/vendor/
-/coverage.out
-
-# ------------------------
-# Java
-# ------------------------
-*.class
-*.jar
-*.war
-*.ear
-target/
-out/
-
-# ------------------------
-# C / C++
-# ------------------------
-*.o
-*.obj
-*.so
-*.exe
-*.dll
-*.a
-*.out
-*.gch
-*.dSYM/
-
-# ------------------------
-# Python (if needed later)
-# ------------------------
-__pycache__/
-*.py[cod]
-
-# ------------------------
-# Logs and temp
-# ------------------------
-*.log
-*.tmp
-
-# ------------------------
-# Build folders (generic)
-# ------------------------
-build/
-dist/
-
-# ------------------------
-# Node (if ever added)
-# ------------------------
-node_modules/
-
-# ------------------------
-# Git
-# ------------------------
-*.orig
