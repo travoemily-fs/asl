@@ -4,8 +4,8 @@
   "description": "This repository houses my assignment for Advanced Server-Side Languages. You can find the required video demonstration linked below, hosted privately to Youtube. All nessecary files have been pushed to this branch.",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
     "test": "jest"
   },
   "keywords": [],
