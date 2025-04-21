@@ -1,15 +1,14 @@
 // project dependencies imports
+const express = require("express");
 const router = express.Router();
 
 // API related imports
 const {
   ContactModel,
-  Pager,
   sortContacts,
   filterContacts,
+  validateContactData,
 } = require("@jworkman-fs/asl");
-const e = require("express");
-
 // begin RESTful endpoints
 
 /* 
@@ -30,60 +29,60 @@ router.get("/", async (req, res, next) => {
   try {
     const contacts = await ContactModel.index();
 
-    // handles filtering logic
-    const filteredContacts = filterContacts(
-      contacts,
-      req.get("X-Filter-By"),
-      req.get("X-Filter-Operator"),
-      req.get("X-Filter-Value")
-    );
+    // only apply filtering if all three headers are present
+    const by = req.get("X-Filter-By");
+    const operator = req.get("X-Filter-Operator");
+    const value = req.get("X-Filter-Value");
 
-    // handles sorting logic
-    const sortedContacts = sortContacts(
-      filteredContacts,
-      req.query.sort,
-      req.query.direction
-    );
+    const allowedFields = [
+      "id",
+      "fname",
+      "lname",
+      "email",
+      "phone",
+      "birthday",
+    ];
+    const allowedOps = ["gt", "gte", "lt", "lte", "eq"];
 
-    // handles pagination logic
-    const pager = new Pager(
-      sortedContacts,
-      // sets page number
-      Number(req.query.page) || 1,
-      // sets number of items per page
-      Number(req.query.size) || 10
-    );
+    let filteredContacts = contacts;
+    if (by && operator && value) {
+      if (!allowedFields.includes(by) || !allowedOps.includes(operator)) {
+        // handles 400 bad request error
+        return res.status(400).json({
+          message: `Bad Request. Invalid filter field or operator.`,
+        });
+      }
 
-    // sets page total and navigation options
-    res.set("X-Page-Total", pager.total());
-    res.set("X-Page-Next", pager.next());
-    res.set("X-Page-Prev", pager.prev());
+      try {
+        filteredContacts = filterContacts(contacts, by, operator, value);
+      } catch (err) {
+        return next(err);
+      }
+    }
+    // apply sorting if sort query parameter is present
+    const sortedContacts = [...filteredContacts];
+    // apply sorting that works with lname both ascending and descending
+    if (req.query.sort === "lname" && req.query.direction === "desc") {
+      sortedContacts.sort((a, b) => b.lname.localeCompare(a.lname));
+    } else {
+      sortedContacts.sort((a, b) => a.lname.localeCompare(b.lname));
+    }
 
-    // declare page results
-    const pageData = pager.results();
+    // pagination
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit ?? req.query.size) || 10;
+    const totalItems = sortedContacts.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const startIndex = (page - 1) * limit;
+    const pageData = sortedContacts.slice(startIndex, startIndex + limit);
 
-    // returns the paginated contacts
+    // set pagination headers
+    res.set("X-Page-Total", String(totalPages));
+    res.set("X-Page-Next", page < totalPages ? String(page + 1) : "");
+    res.set("X-Page-Prev", page > 1 ? String(page - 1) : "");
+
     return res.json(pageData);
-    // error catching
   } catch (err) {
-    // handles 400 invalid enum type error
-    if (err.name === "InvalidEnumError") {
-      return res.status(400).json({
-        message: "Bad Request. Invalid enum type.",
-      });
-    }
-    // handles 416 out of bounds error
-    if (err.name === "PagerOutOfRangeError") {
-      return res.status(416).json({
-        message: "Requested page is out of range.",
-      });
-    }
-    // handles 400 page limit exceeded error
-    if (err.name === "PagerLimitExceededError") {
-      return res.status(400).json({
-        message: "Bad Request. Page limit exceeded.",
-      });
-    }
     return next(err);
   }
 });
@@ -116,7 +115,7 @@ router.get("/:id", async (req, res, next) => {
         message: "Contact not found",
       });
     }
-    next(err);
+    return next(err);
   }
 });
 
@@ -128,15 +127,17 @@ router.post("/", async (req, res, next) => {
       fname: req.body.fname,
       lname: req.body.lname,
       email: req.body.email,
+      phone: req.body.phone,
       birthday: req.body.birthday,
     };
     // validate the payload fields
-    ContactModel.validate(payload);
+    validateContactData(payload);
     // create a new contact - auto throws duplicate error if contact already exists
     const newContact = await ContactModel.create(payload);
     // if successful, redirect to the GET endpoint for the new contact
-    return res.status(303).location(`/contacts/${newContact.id}`).end();
+    return res.status(303).location(`/v1/contacts/${newContact.id}`).end();
   } catch (err) {
+    console.error("POST /contacts failed:", err);
     // handles known exceptions
     if (
       [
@@ -150,7 +151,7 @@ router.post("/", async (req, res, next) => {
         message: "Bad Request. " + err.message,
       });
     }
-    return next(err);
+    return res.status(500).json({ message: "Server error: " + err.message });
   }
 });
 
@@ -160,49 +161,61 @@ router.patch("/:id", async (req, res, next) => {
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
     return res.status(400).json({
+      // handles 400 bad request error
       message: "Bad Request. Invalid contact ID.",
     });
   }
+
   // checks for null and undefined values in any of the fields
-  const { fname, lname, email, birthday } = req.body;
-  if (fname == null && lname == null && email == null && birthday == null) {
+  const { fname, lname, email, phone, birthday } = req.body;
+  if (
+    fname == null &&
+    lname == null &&
+    email == null &&
+    phone == null &&
+    birthday == null
+  ) {
     return res.status(400).json({
+      // handles 400 bad request error
       message: "Bad Request. At least one field must be provided to update.",
     });
   }
+
   try {
     // check that contact exists
     const contact = await ContactModel.show(id);
     if (!contact) {
       return res.status(404).json({
+        // handles 404 not found error
         message: "Contact not found",
       });
     }
-    // validate payload fields
-    ContactModel.validate(req.body);
+
+    // merge and validate
+    const updated = { ...contact, ...req.body };
+    validateContactData(updated);
 
     // perform the update
-    await ContactModel.update(id, req.body);
+    await ContactModel.update(id, updated);
+
     // returns the updated contact via redirect
-    return res.status(303).location(`/contacts/${id}`).end();
+    return res.status(303).location(`/v1/contacts/${id}`).end();
   } catch (err) {
     // error catching
     if (
-      // checks for invalid fields
       err.name === "InvalidContactFieldError" ||
-      // checks for blank fields
       err.name === "BlankContactFieldError" ||
-      // checks for invalid schema
       err.name === "InvalidContactSchemaError" ||
-      // checks for duplicate contacts
       err.name === "DuplicateContactResourceError"
     ) {
       return res.status(400).json({
+        // handles 400 bad request error
         message: "Bad Request. " + err.message,
       });
     }
     if (err.name === "ContactNotFoundError") {
       return res.status(404).json({
+        // handles 404 not found error
         message: "Contact not found",
       });
     }
@@ -216,13 +229,21 @@ router.put("/:id", async (req, res, next) => {
   const id = Number(req.params.id);
   if (Number.isNaN(id)) {
     return res.status(400).json({
+      // handles 400 bad request error
       message: "Bad Request. Invalid contact ID.",
     });
   }
-  // checks that all four fields are filled out
-  const { fname, lname, email, birthday } = req.body;
-  if (fname == null || lname == null || email == null || birthday == null) {
+  // checks that all fields are filled out
+  const { fname, lname, email, phone, birthday } = req.body;
+  if (
+    fname == null ||
+    lname == null ||
+    email == null ||
+    phone == null ||
+    birthday == null
+  ) {
     return res.status(400).json({
+      // handles 400 bad request error
       message: "Bad Request. All fields must be provided.",
     });
   }
@@ -230,35 +251,34 @@ router.put("/:id", async (req, res, next) => {
     // check that contact exists
     const contact = await ContactModel.show(id);
     if (!contact) {
+      // handles 404 not found error
       return res.status(404).json({
         message: "Contact not found",
       });
     }
     // validate payload fields
-    ContactModel.validate(req.body);
+    validateContactData(req.body);
 
-    // perform the update
-    await ContactModel.update(id, req.body);
-    // returns the updated contact via redirect
-    return res.status(303).location(`/contacts/${id}`).end();
+    // perform the replacement
+    await ContactModel.replace(id, req.body);
+    // returns the replaced contact via redirect
+    return res.status(303).location(`/v1/contacts/${id}`).end();
   } catch (err) {
     // error catching
     if (
-      // checks for invalid fields
       err.name === "InvalidContactFieldError" ||
-      // checks for blank fields
       err.name === "BlankContactFieldError" ||
-      // checks for invalid schema
       err.name === "InvalidContactSchemaError" ||
-      // checks for duplicate contacts
       err.name === "DuplicateContactResourceError"
     ) {
       return res.status(400).json({
+        // handles 400 bad request error
         message: "Bad Request. " + err.message,
       });
     }
     if (err.name === "ContactNotFoundError") {
       return res.status(404).json({
+        // handles 404 not found error
         message: "Contact not found",
       });
     }
@@ -279,7 +299,7 @@ router.delete("/:id", async (req, res, next) => {
     // perform the deletion task
     await ContactModel.remove(id);
     // redirect when finished
-    return res.status(303).location("/contacts").end();
+    return res.status(303).location("/v1/contacts").end();
   } catch (err) {
     // handles known exceptions
     if (err.name === "ContactNotFoundError") {

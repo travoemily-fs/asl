@@ -19,7 +19,7 @@ Since this course focuses on 'Advanced' server-side languages, we're introducing
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 📌&nbsp; **Pagination:** Introduce pagination to efficiently manage and navigate through large datasets.
 <br>
 
-> 🗣️💬&nbsp; **emily says...**&nbsp;&nbsp; here
+> 🗣️💬&nbsp; **emily says...**&nbsp;&nbsp; before starting on the coding of my routes, I set up a psuedo code that outlines everything to keep myself on track. You can find this markdown file [here](link). I kept the majority of my comments and notes in my actual routes file as well. 
 
 <br>
 
