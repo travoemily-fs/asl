@@ -2,7 +2,7 @@
 ### 💤 🛜 📁 &nbsp;&nbsp; RESTful Routes Using ExpressJS 
 This repository houses my assignment for Advanced Server-Side Languages. You can find the required video demonstration linked below, hosted privately to Youtube. All nessecary files have been pushed to this branch.
 
-###  &nbsp;&nbsp;&nbsp;&nbsp;🤳 🎥&nbsp;&nbsp; Click for [video demo](youtube.com)❕ 
+###  &nbsp;&nbsp;&nbsp;&nbsp;🤳 🎥&nbsp;&nbsp; Click for [video demo](https://youtu.be/O9VXA5TYJQ8)❕ 
 
 
 
@@ -19,7 +19,7 @@ Since this course focuses on 'Advanced' server-side languages, we're introducing
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 📌&nbsp; **Pagination:** Introduce pagination to efficiently manage and navigate through large datasets.
 <br>
 
-> 🗣️💬&nbsp; **emily says...**&nbsp;&nbsp; before starting on the coding of my routes, I set up a psuedo code that outlines everything to keep myself on track. You can find this markdown file [here](link). I kept the majority of my comments and notes in my actual routes file as well. 
+> 🗣️💬&nbsp; **emily says...**&nbsp;&nbsp; 12/14 isn't bad! I really tried to get them all to pass but, maybe next time. Before starting on the coding of my routes, I set up a psuedo code that outlines everything to keep myself on track. You can find this markdown file [here](link). I kept the majority of my comments and notes in my actual routes file as well. 
 
 <br>
 
